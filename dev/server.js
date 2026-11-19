@@ -9,9 +9,8 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const hasRedis = !!(process.env.REDIS_URL || (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) ||
-                    (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN));
-if (!hasRedis && !process.env.STATUS_FILE && !process.env.NO_STORAGE) process.env.STATUS_FILE = path.join(root, '.dev-status.json');
+const hasDb = !!process.env.TURSO_DATABASE_URL;
+if (!hasDb && !process.env.STATUS_FILE && !process.env.NO_STORAGE) process.env.STATUS_FILE = path.join(root, '.dev-status.json');
 
 const status = require('../api/status');
 const game = require('../api/game');

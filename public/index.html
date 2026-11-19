@@ -302,7 +302,7 @@ function init() {
     } else showGate('', false);
   }).then(null, function () { showGate(errText('network'), true); });
 }
-render(); setInterval(load, POLL); init();
+render(); setInterval(function () { if (!document.hidden) load(); }, POLL); init();
 })();
 </script>
 </body>

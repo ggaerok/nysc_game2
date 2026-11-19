@@ -57,7 +57,7 @@ function render(open, msg) {
   else { cover.classList.remove('hidden'); lobby.classList.add('hidden'); coverMsg.textContent = msg || ''; }
 }
 function check() {
-  fetch('/api/status', { cache: 'no-store' }).then(function (r) {
+  fetch('/api/status').then(function (r) {
     if (!r.ok) throw new Error('http ' + r.status);
     return r.json();
   }).then(function (s) {
@@ -69,7 +69,7 @@ function check() {
   });
 }
 check();
-setInterval(check, POLL);
+setInterval(function () { if (!document.hidden) check(); }, POLL);   // 숨은 탭은 요청하지 않는다
 document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
 })();
 </script>

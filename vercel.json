@@ -1,5 +1,6 @@
 {
   "cleanUrls": true,
+  "regions": ["hnd1"],
   "rewrites": [
     { "source": "/game", "destination": "/api/game" }
   ],

@@ -20,7 +20,7 @@ function setCovered(on, msg) {
 }
 
 function check() {
-  fetch('/api/status', { cache: 'no-store' }).then(function (r) {
+  fetch('/api/status').then(function (r) {
     if (!r.ok) throw new Error('http ' + r.status);
     return r.json();
   }).then(function (s) {
@@ -37,6 +37,6 @@ function check() {
 
 setCovered(false);            // 서버가 열려 있다고 확인하고 내려준 페이지이므로 바로 시작
 check();
-setInterval(check, POLL);
+setInterval(function () { if (!document.hidden) check(); }, POLL);   // 숨은 탭은 요청하지 않는다
 document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
 })();

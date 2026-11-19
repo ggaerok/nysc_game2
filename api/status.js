@@ -23,7 +23,12 @@ module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   const kr = keyRequired();
   try {
-    if (req.method === 'GET') return res.status(200).json(view(await store.getState(), kr));
+    if (req.method === 'GET') {
+      const out = view(await store.getState(), kr);
+      // 수백 명이 3초마다 확인하므로 CDN 이 2초간 같은 답을 나눠 준다 (브라우저는 캐시하지 않음). 오류 응답은 no-store 그대로
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=2');
+      return res.status(200).json(out);
+    }
     if (req.method === 'POST') {
       const body = bodyOf(req);
       if (body.limit !== undefined && body.open === undefined) {   // 제한 시간 설정
