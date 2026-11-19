@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#3b2a8a">
+<title>Cosmos Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#3b2a8a;color:#1b1330;
+  font-family:'Jua',-apple-system,BlinkMacSystemFont,"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  -webkit-tap-highlight-color:transparent}
+.hidden{display:none!important}
+.screen{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:24px}
+#cover{background:#fff;z-index:9000;color:#b8b8b8;font-size:13px}
+#lobby{background:
+  radial-gradient(circle at 12% 18%,#ffe9a8 0 2px,transparent 3px),radial-gradient(circle at 80% 12%,#ffe9a8 0 2px,transparent 3px),
+  radial-gradient(circle at 30% 70%,#ffe9a8 0 1.5px,transparent 2.5px),radial-gradient(circle at 90% 80%,#ffe9a8 0 2px,transparent 3px),
+  radial-gradient(circle at 55% 40%,#ffe9a8 0 1.5px,transparent 2.5px),radial-gradient(120% 80% at 50% 0%,#5b43c4 0%,#3b2a8a 55%,#261a63 100%);}
+.card{background:#fff3cf;border:3.5px solid #1b1330;border-radius:24px;box-shadow:0 6px 0 #1b1330;padding:30px 28px 28px;max-width:340px;width:100%}
+.planets{display:flex;justify-content:center;align-items:flex-end;gap:6px;margin-bottom:12px}
+.planets i{display:block;border-radius:50%;border:3px solid #1b1330}
+h1{margin:0;font-size:clamp(26px,9vw,36px);font-weight:400;white-space:nowrap}
+.note{color:#4a3b78;font-size:min(16px,calc((100vw - 111px) / 12.8));line-height:1.55;margin:10px 0 0}
+.note span{display:block;white-space:nowrap}   /* 항상 3줄: 공간이 모자라면 글자 크기를 줄인다 */
+.btn{white-space:nowrap;display:inline-block;font:inherit;font-size:22px;border:3.5px solid #1b1330;border-radius:18px;padding:12px 34px;
+  background:#ffd23f;color:#1b1330;text-decoration:none;margin-top:20px;box-shadow:0 4px 0 #1b1330}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1b1330}
+</style>
+</head>
+<body>
+<!-- 운영 중이 서버에서 확인되기 전에는 흰 화면으로 덮는다 -->
+<div id="cover" class="screen"><span id="coverMsg"></span></div>
+<div id="lobby" class="screen hidden">
+  <div class="card">
+    <div class="planets"><i style="width:18px;height:18px;background:#bdbab4"></i><i style="width:24px;height:24px;background:#c4764a"></i><i style="width:32px;height:32px;background:#2f6db5"></i><i style="width:40px;height:40px;background:#e3cfb2"></i><i style="width:50px;height:50px;background:#ffc93c"></i></div>
+    <h1>Cosmos Order</h1>
+    <p class="note"><span>태양부터 해왕성까지</span><span>순서대로 드래그해서 이어요.</span><span>길게 이을수록 점수가 폭발!</span></p>
+    <a id="enter" class="btn" href="/game">게임으로 이동</a>
+  </div>
+</div>
+<script>
+(function () {
+'use strict';
+var cover = document.getElementById('cover'), coverMsg = document.getElementById('coverMsg'), lobby = document.getElementById('lobby');
+var POLL = Math.max(500, parseInt(new URLSearchParams(location.search).get('poll') || '3000', 10) || 3000);
+var MAX_FAILS = 2, fails = 0;
+document.getElementById('enter').href = '/game' + location.search;
+
+function render(open, msg) {
+  if (open) { cover.classList.add('hidden'); lobby.classList.remove('hidden'); }
+  else { cover.classList.remove('hidden'); lobby.classList.add('hidden'); coverMsg.textContent = msg || ''; }
+}
+function check() {
+  fetch('/api/status', { cache: 'no-store' }).then(function (r) {
+    if (!r.ok) throw new Error('http ' + r.status);
+    return r.json();
+  }).then(function (s) {
+    fails = 0;
+    if (s && s.open === true) render(true); else render(false, '현재 운영 중이 아닙니다');
+  }).then(null, function () {
+    fails++;
+    if (fails >= MAX_FAILS) render(false, '연결할 수 없습니다');
+  });
+}
+check();
+setInterval(check, POLL);
+document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+})();
+</script>
+</body>
+</html>

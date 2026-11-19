@@ -1,0 +1,9 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/game", "destination": "/api/game" }
+  ],
+  "functions": {
+    "api/game.js": { "includeFiles": "game/**" }
+  }
+}

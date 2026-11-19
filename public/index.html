@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#3b2a8a">
+<title>Cosmos Order 운영 관리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#3b2a8a;color:#1b1330;
+  font-family:'Jua',-apple-system,BlinkMacSystemFont,"Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  -webkit-tap-highlight-color:transparent}
+body{min-height:100vh;display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 16px 40px;
+  background:
+  radial-gradient(circle at 12% 18%,#ffe9a8 0 2px,transparent 3px),radial-gradient(circle at 80% 12%,#ffe9a8 0 2px,transparent 3px),
+  radial-gradient(circle at 30% 70%,#ffe9a8 0 1.5px,transparent 2.5px),radial-gradient(circle at 90% 80%,#ffe9a8 0 2px,transparent 3px),
+  radial-gradient(circle at 55% 40%,#ffe9a8 0 1.5px,transparent 2.5px),radial-gradient(120% 80% at 50% 0%,#5b43c4 0%,#3b2a8a 55%,#261a63 100%)}
+h1{margin:0 0 6px;font-size:30px;font-weight:400;color:#fff3cf;text-shadow:0 3px 0 #1b1330}
+h2{margin:0 0 8px;font-size:20px;font-weight:400}
+.card{background:#fff3cf;border:3.5px solid #1b1330;border-radius:24px;box-shadow:0 6px 0 #1b1330;padding:18px 20px 20px;width:100%;max-width:400px;margin-top:16px}
+.note{color:#4a3b78;font-size:15px;line-height:1.5;margin:6px 0}
+.top-note{color:#e6dcff;font-size:14px;line-height:1.5;max-width:360px;margin:6px 0}
+.pill{display:inline-block;padding:5px 20px;border:3px solid #1b1330;border-radius:999px;font-size:18px;margin:6px 0 4px}
+.pill.on{background:#7be0a4;color:#1b1330}
+.pill.off{background:#fff;color:#4a3b78}
+.row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.btn{font:inherit;font-size:19px;border:3.5px solid #1b1330;border-radius:18px;padding:11px 24px;cursor:pointer;min-width:140px;
+  text-decoration:none;display:inline-block;color:#1b1330;box-shadow:0 4px 0 #1b1330}
+.btn.go{background:#ffd23f}
+.btn.stop{background:#ff7a7a}
+.btn.sub{background:#fff}
+.btn.danger{background:#fff;color:#c0322e;font-size:16px;padding:9px 20px;min-width:0}
+.btn:disabled{opacity:.4;cursor:default;box-shadow:0 2px 0 #1b1330}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #1b1330}
+input{font:inherit;font-size:18px;padding:10px 14px;border-radius:14px;border:3.5px solid #1b1330;background:#fff;color:#1b1330;width:100%;max-width:280px;text-align:center}
+input:disabled{opacity:.55}
+label.f{display:block;font-size:15px;color:#4a3b78;margin:10px 0 6px}
+code{background:#fff;border:2.5px solid #1b1330;border-radius:10px;padding:4px 8px;font-size:13px;word-break:break-all;user-select:all;font-family:inherit}
+.err{color:#c0322e}
+.hidden{display:none!important}
+.sec{margin-top:22px;padding-top:16px;border-top:3px dashed #1b1330}
+ol.hall{list-style:none;margin:8px 0;padding:0;text-align:left}
+ol.hall li{display:flex;align-items:center;gap:8px;padding:8px 6px;border-bottom:2px dashed rgba(27,19,48,.35);font-size:17px}
+ol.hall .rk{flex:none;width:28px;text-align:center;color:#4a3b78}
+ol.hall li:first-child .rk{color:#e08a00}
+ol.hall .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ol.hall .nm small{display:block;font-size:12px;color:#6b5c9a}
+ol.hall li.live .nm small{color:#1f8a52}
+ol.hall .pt{flex:none;font-variant-numeric:tabular-nums}
+.empty{color:#6b5c9a;font-size:15px;padding:14px 0}
+#gate{width:100%;max-width:340px;margin-top:12vh}
+#gate .card{margin-top:0}
+#pin{letter-spacing:.5em;font-size:26px;max-width:200px;padding-left:calc(14px + .5em)}
+#app{width:100%;display:flex;flex-direction:column;align-items:center}
+#pinMsg{min-height:1.6em}
+#mask{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(27,19,48,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+#dlg{background:#fff3cf;border:3.5px solid #1b1330;border-radius:24px;box-shadow:0 6px 0 #1b1330;padding:22px 24px;max-width:340px;width:100%}
+#dlg p{margin:6px 0 0;font-size:15px;line-height:1.55;color:#4a3b78}
+#dlg .row{margin:18px 0 0}
+#dlg .btn{min-width:0;flex:1;padding:10px 0;font-size:18px}
+</style>
+</head>
+<body>
+<h1>Cosmos Order 운영 관리</h1>
+<div id="gate">
+  <div class="card">
+    <h2>관리 번호 입력</h2>
+    <p class="note">운영을 바꾸려면 관리 번호를 입력해 주세요.</p>
+    <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="····" autocomplete="off" disabled>
+    <p id="pinMsg" class="note">확인 중…</p>
+    <div class="row"><button id="pinBtn" class="btn go" type="button" disabled>확인</button></div>
+  </div>
+</div>
+<div id="app" class="hidden">
+<p id="noPin" class="top-note err hidden" style="color:#ffd2d2">관리 번호가 설정되지 않아 누구나 설정을 바꿀 수 있습니다. (Vercel 환경변수 ADMIN_KEY)</p>
+<p class="top-note">이 주소는 참가자에게 공유하지 마세요. 참가자에게는 아래의 게임 페이지 주소만 알려 주세요.</p>
+<div class="card">
+<div id="pill" class="pill off">확인 중…</div>
+<p id="cur" class="note"></p>
+
+<label class="f" for="group">단체명</label>
+<input id="group" type="text" maxlength="20" placeholder="예: 영업1팀" autocomplete="off">
+<div class="row">
+  <button id="btnStart" class="btn go" type="button" disabled>운영 시작</button>
+  <button id="btnStop" class="btn stop" type="button" disabled>운영 종료</button>
+</div>
+<p id="msg" class="note"></p>
+<p class="note">게임 페이지 주소<br><code id="playUrl"></code></p>
+<div class="row"><a id="preview" class="btn sub" href="/play" target="_blank" rel="noopener">게임 페이지 보기</a></div>
+</div>
+
+<div class="card">
+  <h2>게임 관리</h2>
+  <label class="f" for="limMin">게임 제한 시간</label>
+  <div class="row" style="margin:6px 0;align-items:center;gap:8px">
+    <input id="limMin" type="number" inputmode="numeric" min="0" max="60" step="1" style="max-width:90px"> <span>분</span>
+    <input id="limSec" type="number" inputmode="numeric" min="0" max="59" step="1" style="max-width:90px"> <span>초</span>
+  </div>
+  <div class="row"><button id="btnLimit" class="btn go" type="button" disabled>제한 시간 저장</button></div>
+  <p id="limNote" class="note">최소 10초, 최대 60분. 운영 중에 바꾸면 다음 판부터 적용됩니다.</p>
+</div>
+
+<div class="card">
+  <h2>역대 최고기록 (상위 10)</h2>
+  <div id="hallBody"><div class="empty">불러오는 중…</div></div>
+  <div class="row"><button id="btnClear" class="btn danger" type="button" disabled>역대기록 지우기</button></div>
+</div>
+
+</div>
+
+<div id="mask" class="hidden"><div id="dlg" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+  <h2 id="dlgT">역대기록 지우기</h2>
+  <p>역대 최고기록 전체를 삭제합니다. 삭제한 기록은 되돌릴 수 없습니다.<br>진행 중인 운영의 기록은 점수가 다시 오를 때부터 쌓입니다.</p>
+  <div class="row"><button id="dlgNo" class="btn sub" type="button">취소</button><button id="dlgYes" class="btn stop" type="button">삭제</button></div>
+</div></div>
+
+<script>
+(function () {
+'use strict';
+function $(id) { return document.getElementById(id); }
+var pill = $('pill'), cur = $('cur'), msg = $('msg'), btnStart = $('btnStart'), btnStop = $('btnStop'), btnClear = $('btnClear');
+var groupEl = $('group'), hallBody = $('hallBody'), mask = $('mask');
+var gate = $('gate'), app = $('app'), pin = $('pin'), pinBtn = $('pinBtn'), pinMsg = $('pinMsg'), noPin = $('noPin');
+var adminKey = '', unlocked = false, lockTimer = null;
+var st = { open: false, changedAt: 0, group: '', best: 0, loaded: false, error: '' }, writing = false, note = '', noteIsErr = false;
+var hall = null, hallError = false, groupTouched = false, limTouched = false;
+var limMin = $('limMin'), limSec = $('limSec'), btnLimit = $('btnLimit');
+var POLL = Math.max(500, parseInt(new URLSearchParams(location.search).get('poll') || '5000', 10) || 5000);
+
+$('playUrl').textContent = location.origin + '/play';
+try { adminKey = sessionStorage.getItem('adminKey') || ''; } catch (e) {}
+groupEl.addEventListener('input', function () { groupTouched = true; render(); });
+
+function p2(n) { return (n < 10 ? '0' : '') + n; }
+function fmt(ts) { var d = new Date(ts); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()); }
+function errText(code) {
+  if (code === 'storage_not_configured') return '저장소가 연결되지 않았습니다. README의 저장소 연결 단계를 확인해 주세요.';
+  if (code === 'unauthorized') return '관리 번호가 올바르지 않습니다.';
+  if (code === 'locked') return '번호를 여러 번 틀려 잠시 잠겼습니다.';
+  if (code === 'group_required') return '단체명을 입력해 주세요.';
+  if (code === 'already_open') return '이미 운영 중입니다.';
+  if (code === 'invalid_limit') return '제한 시간은 10초에서 60분 사이로 입력해 주세요.';
+  return '서버와 통신하지 못했습니다. (' + code + ')';
+}
+function render() {
+  pill.className = 'pill ' + (st.loaded && st.open ? 'on' : 'off');
+  pill.textContent = !st.loaded ? (st.error ? '확인 불가' : '확인 중…') : (st.open ? '운영 중' : '운영 종료');
+  cur.textContent = st.loaded && st.open ? '단체: ' + st.group + ' · 이번 최고 ' + st.best : '';
+  var ready = st.loaded && !writing;
+  var hasGroup = groupEl.value.replace(/\s+/g, '').length > 0;
+  groupEl.disabled = st.loaded && st.open;
+  btnStart.disabled = !ready || st.open || !hasGroup;
+  btnStop.disabled = !ready || !st.open;
+  btnClear.disabled = !ready;
+  btnLimit.disabled = !ready;
+  if (note) { msg.textContent = note; msg.className = 'note' + (noteIsErr ? ' err' : ''); }
+  else if (st.error) { msg.textContent = errText(st.error); msg.className = 'note err'; }
+  else if (!st.loaded) { msg.textContent = ''; msg.className = 'note'; }
+  else if (!st.open && !hasGroup) { msg.textContent = '단체명을 입력하면 운영을 시작할 수 있습니다.'; msg.className = 'note'; }
+  else { msg.textContent = st.changedAt ? '마지막 변경: ' + fmt(st.changedAt) : '아직 운영을 시작한 적이 없습니다.'; msg.className = 'note'; }
+  renderHall();
+}
+function renderHall() {
+  hallBody.textContent = '';
+  if (hallError) { var e1 = document.createElement('div'); e1.className = 'empty err'; e1.textContent = '기록을 불러오지 못했습니다.'; hallBody.appendChild(e1); return; }
+  if (hall === null) { var e0 = document.createElement('div'); e0.className = 'empty'; e0.textContent = '불러오는 중…'; hallBody.appendChild(e0); return; }
+  if (!hall.length) { var e2 = document.createElement('div'); e2.className = 'empty'; e2.textContent = '아직 기록이 없습니다.'; hallBody.appendChild(e2); return; }
+  var ol = document.createElement('ol'); ol.className = 'hall';
+  hall.forEach(function (e, i) {
+    var li = document.createElement('li'); if (e.live) li.className = 'live';
+    var rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = String(i + 1);
+    var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = e.name;
+    var sm = document.createElement('small'); sm.textContent = e.live ? '진행 중' : fmt(e.at); nm.appendChild(sm);
+    var pt = document.createElement('span'); pt.className = 'pt'; pt.textContent = String(e.score);
+    li.appendChild(rk); li.appendChild(nm); li.appendChild(pt); ol.appendChild(li);
+  });
+  hallBody.appendChild(ol);
+}
+function apply(j) {
+  st.loaded = true; st.error = ''; st.open = j.open === true; st.changedAt = j.changedAt || 0; st.group = j.group || ''; st.best = j.best || 0;
+  st.limit = j.limit || 120;
+  if (!limTouched) { limMin.value = Math.floor(st.limit / 60); limSec.value = st.limit % 60; }
+  if (st.open) groupEl.value = st.group;
+  else if (!groupTouched && st.group && !groupEl.value) groupEl.value = st.group;   // 지난 단체명을 미리 채워 준다
+}
+function jsonOf(r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }
+function loadHall() {
+  fetch('/api/hall', { cache: 'no-store' }).then(jsonOf).then(function (x) {
+    if (x.ok) { hall = x.j.entries || []; hallError = false; } else { hallError = true; }
+    renderHall();
+  }).then(null, function () { hallError = true; renderHall(); });
+}
+function load() {
+  if (writing) return;
+  fetch('/api/status', { cache: 'no-store' }).then(jsonOf).then(function (x) {
+    if (!x.ok) { st.loaded = false; st.error = (x.j && x.j.error) || 'error'; }
+    else apply(x.j);
+    render();
+  }).then(null, function () { st.loaded = false; st.error = 'network'; render(); });
+  loadHall();
+}
+function post(url, body, done) {
+  writing = true; note = ''; noteIsErr = false; render();
+  fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(jsonOf)
+    .then(function (x) { done(x); }, function () { note = errText('network'); noteIsErr = true; })
+    .then(function () { writing = false; render(); loadHall(); });
+}
+function setOpen(v) {
+  if (writing) return;
+  post('/api/status', { open: v, group: groupEl.value, key: adminKey }, function (x) {
+    if (x.ok) {
+      apply(x.j);
+      if (v && x.j.resumed) { note = '이미 있는 단체명이라 기존 기록(' + x.j.best + '점)을 이어서 사용합니다.'; noteIsErr = false; }
+    } else if (authFailed(x)) { return; } else { note = errText((x.j && x.j.error) || 'error'); noteIsErr = true; }
+  });
+}
+limMin.addEventListener('input', function () { limTouched = true; });
+limSec.addEventListener('input', function () { limTouched = true; });
+btnLimit.addEventListener('click', function () {
+  if (writing) return;
+  var total = (parseInt(limMin.value, 10) || 0) * 60 + (parseInt(limSec.value, 10) || 0);
+  if (total < 10 || total > 3600) { note = errText('invalid_limit'); noteIsErr = true; render(); return; }
+  post('/api/status', { limit: total, key: adminKey }, function (x) {
+    if (x.ok) { limTouched = false; apply(x.j); note = '제한 시간을 ' + Math.floor(total / 60) + '분 ' + (total % 60) + '초로 저장했습니다.'; noteIsErr = false; }
+    else if (authFailed(x)) { return; } else { note = errText((x.j && x.j.error) || 'error'); noteIsErr = true; }
+  });
+});
+btnStart.addEventListener('click', function () { setOpen(true); });
+btnStop.addEventListener('click', function () { setOpen(false); });
+
+/* 역대기록 지우기: 확인 팝업 */
+function closeDlg() { mask.classList.add('hidden'); btnClear.focus(); }
+btnClear.addEventListener('click', function () { mask.classList.remove('hidden'); $('dlgNo').focus(); });
+$('dlgNo').addEventListener('click', closeDlg);
+mask.addEventListener('click', function (e) { if (e.target === mask) closeDlg(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !mask.classList.contains('hidden')) closeDlg(); });
+$('dlgYes').addEventListener('click', function () {
+  mask.classList.add('hidden');
+  post('/api/hall', { clear: true, key: adminKey }, function (x) {
+    if (x.ok) { hall = []; note = '역대 기록을 모두 지웠습니다.'; noteIsErr = false; }
+    else if (authFailed(x)) { return; }
+    else { note = errText((x.j && x.j.error) || 'error'); noteIsErr = true; }
+  });
+});
+
+/* ---------- 관리 번호 입력 화면 ---------- */
+function setPinMsg(t, err) { pinMsg.textContent = t; pinMsg.className = 'note' + (err ? ' err' : ''); }
+function showGate(msg, err) {
+  unlocked = false; app.classList.add('hidden'); gate.classList.remove('hidden');
+  pin.disabled = false; pinBtn.disabled = false; pin.value = ''; setPinMsg(msg || '', err);
+  try { pin.focus(); } catch (e) {}
+}
+function showApp() { unlocked = true; gate.classList.add('hidden'); app.classList.remove('hidden'); render(); load(); }
+function startLock(sec) {
+  clearInterval(lockTimer);
+  var until = Date.now() + sec * 1000;
+  gate.classList.remove('hidden'); app.classList.add('hidden'); unlocked = false;
+  pin.value = ''; pin.disabled = true; pinBtn.disabled = true;
+  function tick() {
+    var left = Math.ceil((until - Date.now()) / 1000);
+    if (left <= 0) { clearInterval(lockTimer); pin.disabled = false; pinBtn.disabled = false; setPinMsg('다시 입력해 주세요.', false); try { pin.focus(); } catch (e) {} return; }
+    setPinMsg('번호를 5번 틀려 입력이 잠겼습니다. ' + left + '초 후에 다시 입력할 수 있습니다.', true);
+  }
+  tick(); lockTimer = setInterval(tick, 250);
+}
+// 설정 변경이 번호 때문에 거절되면 입력 화면으로 되돌린다
+function authFailed(x) {
+  var e = x.j && x.j.error;
+  if (e !== 'unauthorized' && e !== 'locked') return false;
+  adminKey = ''; try { sessionStorage.removeItem('adminKey'); } catch (er) {}
+  if (e === 'locked') startLock((x.j && x.j.retryAfter) || 60); else showGate('관리 번호가 다시 필요합니다.', true);
+  return true;
+}
+function submitPin() {
+  var v = pin.value.replace(/\s+/g, '');
+  if (!v) return;
+  pin.disabled = true; pinBtn.disabled = true; setPinMsg('확인 중…', false);
+  fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: v }) }).then(jsonOf).then(function (x) {
+    if (x.ok) { adminKey = v; try { sessionStorage.setItem('adminKey', v); } catch (e) {} showApp(); return; }
+    var err = x.j && x.j.error;
+    if (err === 'locked') startLock((x.j && x.j.retryAfter) || 60);
+    else if (err === 'unauthorized') showGate('번호가 맞지 않습니다. (남은 시도 ' + x.j.left + '회)', true);
+    else { showGate(errText(err || 'error'), true); }
+  }).then(null, function () { showGate(errText('network'), true); });
+}
+pinBtn.addEventListener('click', submitPin);
+pin.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitPin(); });
+pin.addEventListener('input', function () { pin.value = pin.value.replace(/[^0-9]/g, ''); });
+function init() {
+  fetch('/api/auth', { cache: 'no-store' }).then(jsonOf).then(function (x) {
+    if (!x.ok) { showGate(errText((x.j && x.j.error) || 'error'), true); return; }
+    if (!x.j.keyRequired) { noPin.classList.remove('hidden'); showApp(); return; }
+    if (x.j.locked) { startLock(x.j.retryAfter || 60); return; }
+    if (adminKey) {   // 이 탭에서 이미 입력한 번호가 있으면 조용히 확인
+      fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: adminKey }) }).then(jsonOf).then(function (y) {
+        if (y.ok) showApp(); else if (y.j && y.j.error === 'locked') startLock(y.j.retryAfter || 60); else { adminKey = ''; try { sessionStorage.removeItem('adminKey'); } catch (e) {} showGate('', false); }
+      });
+    } else showGate('', false);
+  }).then(null, function () { showGate(errText('network'), true); });
+}
+render(); setInterval(load, POLL); init();
+})();
+</script>
+</body>
+</html>

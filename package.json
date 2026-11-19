@@ -1,0 +1,16 @@
+{
+  "name": "cosmos_order",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cosmos Order - 천체를 순서대로 잇는 게임 (운영 시작/종료·제한 시간 관리 포함)",
+  "scripts": {
+    "dev": "node dev/server.js",
+    "build:game": "node tools/build.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "redis": "^4.7.1"
+  }
+}
