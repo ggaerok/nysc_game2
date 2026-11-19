@@ -17,10 +17,11 @@ function loadGame() {
   throw new Error('game/game.html not found');
 }
 
+const LOGO = require('../lib/logo');
 const WHITE = '<!doctype html><html lang="ko"><head><meta charset="utf-8">' +
-  '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title></title>' +
+  '<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Solar System</title>' +
   '<style>html,body{margin:0;height:100%;background:#fff;color:#b8b8b8;font:13px sans-serif}' +
-  'body{display:flex;align-items:center;justify-content:center}</style></head><body>MSG</body></html>';
+  'body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}.logo{width:min(240px,64vw);height:auto}</style></head><body>' + LOGO + '<div>MSG</div></body></html>';
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, max-age=0');

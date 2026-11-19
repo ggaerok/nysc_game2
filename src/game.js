@@ -364,7 +364,7 @@ function stop() {
 window.__game = { start: start, stop: stop, isRunning: function () { return running; },
   setInfo: function (o) {
     if (!o) return;
-    if (typeof o.group === 'string') elOrg.textContent = o.group;
+    if (typeof o.group === 'string') $('orgName').textContent = o.group;
     if (typeof o.best === 'number') setBest(o.best);
     if (typeof o.limit === 'number' && o.limit >= 10 && o.limit !== limit) { limit = o.limit; if (state === 'ready') { timeLeft = limit; elTimer.textContent = mmss(limit); drawSizeButtons(); } }
   } };
