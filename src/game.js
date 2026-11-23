@@ -23,7 +23,7 @@ var path = [];                     // 드래그로 고른 칸 [{r,c}]
 var dragging = false;
 var state = 'ready';               // ready | play | over
 var limit = DEFAULT_LIMIT, timeLeft = DEFAULT_LIMIT, lastNow = 0;
-var score = 0, best = 0, sentMax = 0, lastSend = 0, sendTimer = 0;
+var score = 0, best = 0;
 var fx = [], pops = [], toast = null;
 var running = false, uiOpen = 0, loopToken = 0;
 var cell = 40, M = 12, cw = 0, ch = 0, dpr = 1;
@@ -71,28 +71,32 @@ function busy() {
   return false;
 }
 
-/* ---------- 점수 보내기 (기존 Cosmos Ball 과 같은 방식) ---------- */
+/* ---------- 점수 보내기: 게임이 끝날 때 한 번만 ----------
+   보내는 때: ① 게임 오버(시간 종료) ② 진행 중에 확인 창에서 "다시 시작"/"처음으로"를 누른 때. 진행 중에는 보내지 않는다.
+   서버가 403(운영 중 아님)으로 답하면 바로 흰 화면으로 덮고 더는 확인하지 않는다. */
+var sentFinal = false, sending = null;
 function showScore() { elScore.textContent = fmt(score); elBest.textContent = fmt(Math.max(best, score)); }
-function setBest(v) { best = Number(v) || 0; showScore(); }
-function sendScore() {
-  lastSend = Date.now(); sendTimer = 0;
-  if (score <= sentMax) return;
+function setBest(v) { best = Number(v) || 0; showScore(); $('finalBest').textContent = fmt(Math.max(best, score)); }
+// 결과: 'sent'(기록 완료) | 'closed'(운영 종료, 화면 덮음) | 'fail'(통신 실패) | 'skip'(보낼 점수 없음/이미 보냄)
+function submitFinal() {
+  if (sending) return sending;
+  if (sentFinal || score <= 0) return Promise.resolve('skip');
   var s = score;
-  try {
-    fetch('/api/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ score: s }) })
-      .then(function (r) {
-        if (r.status === 403) { if (window.__gate) window.__gate.close('현재 운영 중이 아닙니다'); return null; }   // 운영 종료: 바로 화면을 덮는다
-        return r.ok ? r.json() : null;
-      })
-      .then(function (j) { if (j && typeof j.best === 'number') { sentMax = Math.max(sentMax, s); setBest(j.best); } })
-      .then(null, function () {});
-  } catch (e) {}
+  sending = fetch('/api/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ score: s }) })
+    .then(function (r) {
+      if (r.status === 403) { sentFinal = true; if (window.__gate) window.__gate.close('현재 운영 중이 아닙니다'); return 'closed'; }
+      if (!r.ok) return 'fail';
+      return r.json().then(function (j) { sentFinal = true; if (j && typeof j.best === 'number') setBest(j.best); return 'sent'; });
+    })
+    .then(null, function () { return 'fail'; })
+    .then(function (res) { sending = null; $('sendFail').classList.toggle('hidden', res !== 'fail' || state !== 'over'); return res; });
+  return sending;
 }
-function maybeSend(force) {
-  if (score <= sentMax) return;
-  var wait = force ? 0 : Math.max(0, 1500 - (Date.now() - lastSend));
-  if (!wait) { clearTimeout(sendTimer); sendScore(); }
-  else if (!sendTimer) sendTimer = setTimeout(sendScore, wait);
+// 확인 창에서 "다시 시작"/"처음으로"를 누른 뒤: 점수를 보내고(최대 5초 기다림) 끝나면 이어서 진행. 운영 종료로 덮였으면 이어가지 않는다.
+function sendThen(proceed) {
+  var done = false;
+  function go(res) { if (done) return; done = true; if (res !== 'closed') proceed(); }
+  submitFinal().then(go); setTimeout(function () { go('timeout'); }, 5000);
 }
 
 /* ---------- 상단 표시 (목표 천체 / 진행 막대) ---------- */
@@ -193,7 +197,7 @@ function commit(p) {
   }
   var e = p[n - 1];
   pops.push({ x: (e.c + .5) * cell, y: (e.r + .5) * cell, text: '+' + fmt(pts), sub: n >= 9 ? 'PERFECT!' : n + '연결', t: 0, big: n >= 5 });
-  score += pts; showScore(); maybeSend(false);
+  score += pts; showScore();
   collapse();
 }
 function collapse() {
@@ -275,9 +279,10 @@ function update(dt, now) {
   }
 }
 function endGame() {
-  state = 'over'; dragging = false; path = []; updateGoal(); maybeSend(true);
+  state = 'over'; dragging = false; path = []; updateGoal();
   $('finalScore').textContent = fmt(score); $('finalBest').textContent = fmt(Math.max(best, score));
-  $('over').classList.remove('hidden');
+  $('sendFail').classList.add('hidden'); $('over').classList.remove('hidden');
+  submitFinal();
 }
 
 /* ---------- 시작 화면 (칸 수 선택) ---------- */
@@ -288,7 +293,7 @@ function drawSizeButtons() {
 }
 function newBoard() {
   fillBoard(); path = []; dragging = false; fx = []; pops = []; toast = null;
-  score = 0; sentMax = 0; showScore(); updateGoal(); fit();
+  score = 0; sentFinal = false; showScore(); updateGoal(); fit();
 }
 function showReady() {
   state = 'ready'; newBoard(); timeLeft = limit; elTimer.textContent = mmss(limit); elTimer.parentNode.className = 'pill';
@@ -302,6 +307,7 @@ Array.prototype.forEach.call(document.querySelectorAll('#sizes button'), functio
 });
 $('btnStart').addEventListener('click', beginPlay);
 $('restart').addEventListener('click', showReady);
+$('btnResend').addEventListener('click', function () { submitFinal(); });
 
 /* ---------- 창(역대 기록 / 확인) ---------- */
 var elDlg = $('dlg'), elDlgCard = $('dlgCard');
@@ -337,10 +343,10 @@ function hallDlg() {
 $('btnHall').addEventListener('click', hallDlg);
 $('btnHome').addEventListener('click', function () {
   function go() { location.href = '/play' + location.search; }
-  if (state === 'play' && score > 0) confirmDlg('처음으로', '처음 화면으로 돌아갑니다. 진행 중인 게임은 사라집니다.', '돌아가기', go); else go();
+  if (state === 'play' && score > 0) confirmDlg('처음으로', '처음 화면으로 돌아갑니다. 지금까지의 점수는 기록하고 게임을 끝냅니다.', '돌아가기', function () { sendThen(go); }); else go();
 });
 $('btnRefresh').addEventListener('click', function () {
-  if (state === 'play' && score > 0) confirmDlg('다시 시작', '지금 게임을 끝내고 처음부터 다시 시작합니다.', '다시 시작', showReady); else showReady();
+  if (state === 'play' && score > 0) confirmDlg('다시 시작', '지금 게임을 끝내고 처음부터 다시 시작합니다. 지금까지의 점수는 기록합니다.', '다시 시작', function () { sendThen(showReady); }); else showReady();
 });
 document.addEventListener('touchmove', function (e) { e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
