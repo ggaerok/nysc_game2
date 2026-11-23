@@ -52,31 +52,35 @@ h1{margin:0;font-size:0;line-height:0}
 'use strict';
 var cover = document.getElementById('cover'), coverMsg = document.getElementById('coverMsg'), lobby = document.getElementById('lobby');
 var POLL = Math.max(500, parseInt(new URLSearchParams(location.search).get('poll') || '600000', 10) || 600000);   // 10분
-var RETRY = 5000, RETURN_MIN = 60000, MAX_FAILS = 2, fails = 0, lastCheck = 0, timer = 0;
+var RETRY = 5000, RETURN_MIN = 60000, MAX_FAILS = 2, fails = 0, lastCheck = 0, timer = 0, covered = false;   // 흰 화면이 뜨면 확인을 멈춘다 (새로고침해야 다시 확인)
 document.getElementById('enter').href = '/game' + location.search;
 
 function render(open, msg) {
+  covered = !open; if (covered) clearTimeout(timer);
   if (open) { cover.classList.add('hidden'); lobby.classList.remove('hidden'); }
   else { cover.classList.remove('hidden'); lobby.classList.add('hidden'); coverMsg.textContent = msg || ''; }
 }
-function schedule(ms) { clearTimeout(timer); timer = setTimeout(function () { if (document.hidden) schedule(POLL); else check(); }, ms); }
+function schedule(ms) { clearTimeout(timer); if (covered) return; timer = setTimeout(function () { if (document.hidden) schedule(POLL); else check(); }, ms); }
 function check() {
+  if (covered) return;
   lastCheck = Date.now();
   fetch('/api/status').then(function (r) {
     if (!r.ok) throw new Error('http ' + r.status);
     return r.json();
   }).then(function (s) {
+    if (covered) return;
     fails = 0;
     if (s && s.open === true) render(true); else render(false, '현재 운영 중이 아닙니다');
     schedule(POLL);
   }).then(null, function () {
+    if (covered) return;
     fails++;
-    if (fails >= MAX_FAILS) render(false, '연결할 수 없습니다');
+    if (fails >= MAX_FAILS) { render(false, '연결할 수 없습니다'); return; }
     schedule(RETRY);
   });
 }
 check();   // 이후 10분마다 (숨은 탭은 건너뛴다)
-document.addEventListener('visibilitychange', function () { if (!document.hidden && Date.now() - lastCheck >= RETURN_MIN) check(); });
+document.addEventListener('visibilitychange', function () { if (!document.hidden && !covered && Date.now() - lastCheck >= RETURN_MIN) check(); });
 })();
 </script>
 </body>
