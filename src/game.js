@@ -80,7 +80,10 @@ function sendScore() {
   var s = score;
   try {
     fetch('/api/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ score: s }) })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) {
+        if (r.status === 403) { if (window.__gate) window.__gate.close('현재 운영 중이 아닙니다'); return null; }   // 운영 종료: 바로 화면을 덮는다
+        return r.ok ? r.json() : null;
+      })
       .then(function (j) { if (j && typeof j.best === 'number') { sentMax = Math.max(sentMax, s); setBest(j.best); } })
       .then(null, function () {});
   } catch (e) {}

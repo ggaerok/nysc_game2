@@ -1,15 +1,17 @@
 /* ---------- 게임 페이지 운영 상태 확인 ----------
    /game 은 서버가 '운영 중'일 때만 이 페이지를 내려준다. 이미 열려 있는 동안에도 주기적으로
    /api/status 를 확인해서, 운영이 종료되면 흰 화면으로 덮고 게임을 멈춘다.
-   - 상태를 연속으로 확인하지 못하면(연결 끊김 등) 닫힘으로 본다. */
+   - 확인 간격은 10분이다. 대신 점수를 서버로 보낼 때 '운영 중이 아님'(403) 응답이 오면 game.js 가 window.__gate.close() 를 불러 즉시 덮는다.
+   - 상태를 연속으로 확인하지 못하면(연결 끊김 등) 닫힘으로 본다. 실패했을 때만 5초 뒤 다시 확인한다. */
 (function () {
 'use strict';
 function $(id) { return document.getElementById(id); }
 var cover = $('cover'), coverMsg = $('coverMsg'), appEl = $('app');
-var POLL = Math.max(500, parseInt(new URLSearchParams(location.search).get('poll') || '3000', 10) || 3000);
+var POLL = Math.max(500, parseInt(new URLSearchParams(location.search).get('poll') || '600000', 10) || 600000);   // 10분
+var RETRY = 5000, RETURN_MIN = 60000;   // 실패 시 재시도 간격 / 화면으로 돌아왔을 때 이전 확인이 이만큼 지났으면 다시 확인
 var MAX_FAILS = 3;
 
-var open = true, fails = 0, covered = false;
+var open = true, fails = 0, covered = false, lastCheck = 0, timer = 0;
 
 function setCovered(on, msg) {
   covered = on;
@@ -19,7 +21,9 @@ function setCovered(on, msg) {
   if (g) { if (on) g.stop(); else g.start(); }
 }
 
+function schedule(ms) { clearTimeout(timer); timer = setTimeout(function () { if (document.hidden) schedule(POLL); else check(); }, ms); }
 function check() {
+  lastCheck = Date.now();
   fetch('/api/status').then(function (r) {
     if (!r.ok) throw new Error('http ' + r.status);
     return r.json();
@@ -29,14 +33,17 @@ function check() {
     if (open && window.__game && window.__game.setInfo) window.__game.setInfo({ group: s.group || '', best: Number(s.best) || 0, limit: Number(s.limit) || 0 });
     if (!open) { if (!covered) setCovered(true, '현재 운영 중이 아닙니다'); else coverMsg.textContent = '현재 운영 중이 아닙니다'; }
     else if (covered) { location.replace('/play' + location.search); }   // 다시 열리면 입구부터
+    schedule(POLL);
   }).then(null, function () {
     fails++;
     if (fails >= MAX_FAILS) setCovered(true, '연결할 수 없습니다');
+    schedule(RETRY);
   });
 }
+// 점수 전송에서 '운영 중이 아님' 응답을 받았을 때 game.js 가 부른다: 기다리지 않고 바로 덮는다
+window.__gate = { close: function (msg) { open = false; if (!covered) setCovered(true, msg || '현재 운영 중이 아닙니다'); else coverMsg.textContent = msg || '현재 운영 중이 아닙니다'; schedule(POLL); } };
 
 setCovered(false);            // 서버가 열려 있다고 확인하고 내려준 페이지이므로 바로 시작
-check();
-setInterval(function () { if (!document.hidden) check(); }, POLL);   // 숨은 탭은 요청하지 않는다
-document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+check();   // 이후 10분마다 (숨은 탭은 건너뛴다)
+document.addEventListener('visibilitychange', function () { if (!document.hidden && Date.now() - lastCheck >= RETURN_MIN) check(); });
 })();

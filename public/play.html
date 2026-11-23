@@ -51,29 +51,32 @@ h1{margin:0;font-size:0;line-height:0}
 (function () {
 'use strict';
 var cover = document.getElementById('cover'), coverMsg = document.getElementById('coverMsg'), lobby = document.getElementById('lobby');
-var POLL = Math.max(500, parseInt(new URLSearchParams(location.search).get('poll') || '3000', 10) || 3000);
-var MAX_FAILS = 2, fails = 0;
+var POLL = Math.max(500, parseInt(new URLSearchParams(location.search).get('poll') || '600000', 10) || 600000);   // 10분
+var RETRY = 5000, RETURN_MIN = 60000, MAX_FAILS = 2, fails = 0, lastCheck = 0, timer = 0;
 document.getElementById('enter').href = '/game' + location.search;
 
 function render(open, msg) {
   if (open) { cover.classList.add('hidden'); lobby.classList.remove('hidden'); }
   else { cover.classList.remove('hidden'); lobby.classList.add('hidden'); coverMsg.textContent = msg || ''; }
 }
+function schedule(ms) { clearTimeout(timer); timer = setTimeout(function () { if (document.hidden) schedule(POLL); else check(); }, ms); }
 function check() {
+  lastCheck = Date.now();
   fetch('/api/status').then(function (r) {
     if (!r.ok) throw new Error('http ' + r.status);
     return r.json();
   }).then(function (s) {
     fails = 0;
     if (s && s.open === true) render(true); else render(false, '현재 운영 중이 아닙니다');
+    schedule(POLL);
   }).then(null, function () {
     fails++;
     if (fails >= MAX_FAILS) render(false, '연결할 수 없습니다');
+    schedule(RETRY);
   });
 }
-check();
-setInterval(function () { if (!document.hidden) check(); }, POLL);   // 숨은 탭은 요청하지 않는다
-document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+check();   // 이후 10분마다 (숨은 탭은 건너뛴다)
+document.addEventListener('visibilitychange', function () { if (!document.hidden && Date.now() - lastCheck >= RETURN_MIN) check(); });
 })();
 </script>
 </body>
